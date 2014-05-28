@@ -4,13 +4,10 @@ module ActiveMerchant #:nodoc:
       module PayuIn
         class Helper < ActiveMerchant::Billing::Integrations::Helper
 
-          CHECKSUM_FIELDS = [ 'txnid', 'amount', 'productinfo', 'firstname', 'email', 'udf1', 'udf2', 'udf3', 'udf4',
-                              'udf5', 'udf6', 'udf7', 'udf8', 'udf9', 'udf10']
-
           mapping :amount, 'amount'
           mapping :account, 'key'
           mapping :order, 'txnid'
-          mapping :description, 'productinfo'
+          mapping :credential2, 'productinfo'
 
           mapping :customer, :first_name => 'firstname',
             :last_name  => 'lastname',
@@ -24,12 +21,13 @@ module ActiveMerchant #:nodoc:
             :zip => 'zip',
             :country => 'country'
 
-          # Which tab you want to be open default on PayU
+          # Which	tab	you	want	to	be	open	default	on	PayU
           # CC (CreditCard) or NB (NetBanking)
           mapping :mode, 'pg'
 
           mapping :notify_url, 'notify_url'
-          mapping :return_url, ['surl', 'furl']
+          mapping :return_url, :success => 'surl',
+            :failure => 'furl'
           mapping :cancel_return_url, 'curl'
           mapping :checksum, 'hash'
 
@@ -45,27 +43,23 @@ module ActiveMerchant #:nodoc:
             :var10 => 'udf10'
           }
 
-          def initialize(order, account, options = {})
-            super
-            @options = options
-            self.pg = 'CC'
-          end
-
-          def form_fields
-            sanitize_fields
-            @fields.merge(mappings[:checksum] => generate_checksum)
-          end
-
-          def generate_checksum
-            checksum_payload_items = CHECKSUM_FIELDS.map { |field| @fields[field] }
-
-            PayuIn.checksum(@fields["key"], @options[:credential2], checksum_payload_items )
-          end
-
-          def sanitize_fields
-            ['address1', 'address2', 'city', 'state', 'country', 'productinfo', 'email', 'phone'].each do |field|
-              @fields[field].gsub!(/[^a-zA-Z0-9\-_@\/\s.]/, '') if @fields[field]
+          # Computes the checksum for the form data and add it to the field
+          def add_checksum(  options = {} )
+            checksum_fields = [ :order, :amount, :credential2, { :customer => [ :first_name, :email ] },
+              { :user_defined => [ :var1, :var2, :var3, :var4, :var5, :var6, :var7, :var8, :var9, :var10 ] } ]
+            checksum_payload_items = checksum_fields.inject( [] ) do | items, field |
+              if Hash === field then
+                key = field.keys.first
+                field[key].inject( items ){ |s,x| items.push( form_fields[ mappings[key][x] ] ) }
+                # items.push( form_fields[ field.values.each{ |x| mappings[ key ][ x ] } ] )
+              else
+                items.push( form_fields[ mappings[field] ] )
+              end
             end
+            checksum_payload_items.push( options )
+            checksum = PayuIn.checksum( *checksum_payload_items )
+            add_field( mappings[:checksum], checksum )
+            return checksum_payload_items
           end
 
         end
