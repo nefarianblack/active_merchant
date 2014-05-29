@@ -76,10 +76,17 @@ module ActiveMerchant #:nodoc:
           options = payload_items.pop if Hash === payload_items.last
           options ||= {}
           payload = if options[:reverse] then
+            puts "reverse"
             payload_items.dup.push( self.merchant_id || "" ).unshift( self.secret_key || "" ).collect{ |x| trim(x) }.join("|")
           else
+            puts "not reverse"
             payload_items.dup.unshift( self.merchant_id || "" ).push( self.secret_key || "" ).collect{ |x| trim(x) }.join("|")
           end
+          puts "-"*80
+          puts payload
+          puts "-"
+          puts options
+          puts "-"*80
           if options[:debug]
             puts "-"*80
             puts payload
