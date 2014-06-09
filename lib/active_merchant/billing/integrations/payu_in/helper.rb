@@ -62,6 +62,11 @@ module ActiveMerchant #:nodoc:
             return checksum_payload_items
           end
 
+          def brand
+            puts "~"*80
+            "payu_in"
+          end
+
         end
 
       end
