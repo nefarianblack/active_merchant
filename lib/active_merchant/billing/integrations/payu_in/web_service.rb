@@ -82,6 +82,11 @@ module ActiveMerchant #:nodoc:
             merge!( response["transaction_details"] && response["transaction_details"].size == 1 ? response["transaction_details"].values.first : ( response["transaction_details"] || { :status => response['msg'] } ) )
           end
 
+          def self.brand
+            puts "~"*80
+            "payu_in"
+          end
+
         end
       end
     end
